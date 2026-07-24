@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>🍰 Custom Cakes - Order Now</title>
+    
+    <!-- Tailwind via CDN for instant beautiful styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    
+    <style>
+        /* Custom smooth animations & touchups */
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .cake-card {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 20px 60px rgba(236, 72, 153, 0.15);
+        }
+        .file-upload-area {
+            border: 2px dashed #f472b6;
+            transition: all 0.3s ease;
+            background: #fff1f7;
+            cursor: pointer;
+        }
+        .file-upload-area:hover,
+        .file-upload-area.dragover {
+            background: #fce7f3;
+            border-color: #ec4899;
+            transform: scale(1.01);
+        }
+        .file-upload-area i {
+            font-size: 2.5rem;
+            color: #ec4899;
+        }
+        .submit-btn {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(236, 72, 153, 0.3);
+        }
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(236, 72, 153, 0.4);
+        }
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .loader {
+            border: 3px solid #fce7f3;
+            border-top: 3px solid #ec4899;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: #ec4899;
+            ring: 2px solid #f472b6;
+            box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
+        }
+        .file-name {
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+        #successMessage {
+            background: #ecfdf5;
+            border-left: 4px solid #10b981;
+            animation: slideDown 0.5s ease;
+        }
+        @keyframes slideDown {
+            0% { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        /* Mobile-first: Big touch targets */
+        select, input, textarea, button {
+            font-size: 16px !important; /* Prevents iOS zoom */
+        }
+        /* Scrollable file list */
+        #fileList {
+            max-height: 80px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MAIN WRAPPER -->
+    <div class="min-h-screen flex items-center justify-center p-4 md:p-8">
+        
+        <!-- CARD -->
+        <div class="cake-card rounded-3xl p-6 md:p-10 w-full max-w-2xl">
+            
+            <!-- HEADER -->
+            <div class="text-center mb-8">
+                <div class="text-5xl mb-3">🧁</div>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 tracking-tight">
+                    <span class="text-pink-500">Custom</span> Cake Studio
+                </h1>
+                <p class="text-gray-600 mt-2 text-sm md:text-base">
+                    <i class="fas fa-pencil-alt text-pink-400 mr-1"></i> 
+                    Describe your dream cake. We'll bake it.
+                </p>
+                <p class="text-xs text-gray-400 mt-1">
+                    <i class="fas fa-clock mr-1"></i> We reply within 1 hour with price
+                </p>
+            </div>
+
+            <!-- SUCCESS MESSAGE (Hidden by default) -->
+            <div id="successMessage" class="hidden p-4 rounded-xl mb-6 flex items-start gap-3">
+                <i class="fas fa-check-circle text-green-500 text-xl mt-0.5"></i>
+                <div>
+                    <p class="font-semibold text-green-800">🎉 Cake request sent!</p>
+                    <p class="text-sm text-green-700">We'll WhatsApp you the price shortly.</p>
+                </div>
+            </div>
+
+            <!-- ERROR MESSAGE -->
+            <div id="errorMessage" class="hidden p-4 rounded-xl mb-6 bg-red-50 border-l-4 border-red-500 flex items-start gap-3">
+                <i class="fas fa-exclamation-circle text-red-500 text-xl mt-0.5"></i>
+                <div>
+                    <p class="font-semibold text-red-800">Oops!</p>
+                    <p id="errorText" class="text-sm text-red-700">Something went wrong. Please try again.</p>
+                </div>
+            </div>
+
+            <!-- FORM -->
+            <form id="cakeForm" class="space-y-5">
+                
+                <!-- Name -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        <i class="fas fa-user text-pink-400 mr-1"></i> Full Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="customerName" required
+                           class="form-input w-full px-4 py-3 rounded-xl border border-gray-300 bg-white/70 transition"
+                           placeholder="Your full name" />
+                </div>
+
+                <!-- Phone -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        <i class="fab fa-whatsapp text-green-500 mr-1"></i> WhatsApp / Phone <span class="text-red-500">*</span>
+                    </label>
+                    <input type="tel" id="customerPhone" required
+                           class="form-input w-full px-4 py-3 rounded-xl border border-gray-300 bg-white/70 transition"
+                           placeholder="+91 98765 43210" />
+                </div>
+
+                <!-- Event Date -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        <i class="fas fa-calendar-day text-pink-400 mr-1"></i> Event Date
+                    </label>
+                    <input type="date" id="eventDate"
+                           class="form-input w-full px-4 py-3 rounded-xl border border-gray-300 bg-white/70 transition" />
+                </div>
+
+                <!-- Flavor -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        <i class="fas fa-ice-cream text-pink-400 mr-1"></i> Cake Flavor <span class="text-red-500">*</span>
+                    </label>
+                    <select id="cakeFlavor" required
+                            class="form-select w-full px-4 py-3 rounded-xl border border-gray-300 bg-white/70 transition appearance-none">
+                        <option value="">-- Select Flavor --</option>
+                        <option value="Chocolate">🍫 Chocolate</option>
+                        <option value="Vanilla">🍦 Vanilla</option>
+                        <option value="Red Velvet">❤️ Red Velvet</option>
+                        <option value="Strawberry">🍓 Strawberry</option>
+                        <option value="Butterscotch">🧈 Butterscotch</option>
+                        <option value="Pineapple">🍍 Pineapple</option>
+                        <option value="Black Forest">🌲 Black Forest</option>
+                        <option value="Custom (Write in description)">✏️ Custom (see description)</option>
+                    </select>
+                </div>
+
+                <!-- Size -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        <i class="fas fa-weight-scale text-pink-400 mr-1"></i> Cake Size <span class="text-red-500">*</span>
+                    </label>
+                    <select id="cakeSize" required
+                            class="form-select w-full px-4 py-3 rounded-xl border border-gray-300 bg-white/70 transition appearance-none">
+                        <option value="">-- Select Size --</option>
+                        <option value="0.5 KG">0.5 KG (serves 4-6)</option>
+                        <option value="1 KG">1 KG (serves 8-12)</option>
+                        <option value="2 KG">2 KG (serves 16-20)</option>
+                        <option value="3 KG">3 KG (serves 25-30)</option>
+                        <option value="5 KG">5 KG (serves 40+)</option>
+                    </select>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        <i class="fas fa-pen-fancy text-pink-400 mr-1"></i> Special Requests / Description <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="cakeDescription" required rows="4"
+                              class="form-textarea w-full px-4 py-3 rounded-xl border border-gray-300 bg-white/70 transition resize-y"
+                              placeholder="Describe your custom cake... Theme, colors, icing, filling, toppings, message on cake, etc."></textarea>
+                </div>
+
+                <!-- File Upload -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                        <i class="fas fa-image text-pink-400 mr-1"></i> Reference Photo (optional)
+                    </label>
+                    <div id="dropArea" class="file-upload-area rounded-xl p-6 text-center transition">
+                        <i class="fas fa-cloud-upload-alt block mb-2"></i>
+                        <p class="text-sm text-gray-600 font-medium">Tap to upload or drag & drop</p>
+                        <p class="text-xs text-gray-400 mt-1">JPG, PNG, WEBP • Max 50 MB</p>
+                        <input type="file" id="imageInput" accept=".jpg,.jpeg,.png,.webp" class="hidden" />
+                        <div id="fileList" class="mt-3 text-sm text-gray-700"></div>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" id="submitBtn"
+                        class="submit-btn w-full text-white font-bold py-4 px-6 rounded-xl text-lg transition flex items-center justify-center gap-3">
+                    <i class="fas fa-paper-plane"></i>
+                    <span id="btnText">Send My Cake Request</span>
+                    <span id="btnLoader" class="hidden"><span class="loader"></span></span>
+                </button>
+
+                <p class="text-xs text-center text-gray-400 mt-4">
+                    <i class="fas fa-lock text-pink-300 mr-1"></i> 
+                    Your data is safe. We don't store anything.
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // DOM Elements
+            const form = document.getElementById('cakeForm');
+            const nameInput = document.getElementById('customerName');
+            const phoneInput = document.getElementById('customerPhone');
+            const eventDateInput = document.getElementById('eventDate');
+            const flavorSelect = document.getElementById('cakeFlavor');
+            const sizeSelect = document.getElementById('cakeSize');
+            const descriptionInput = document.getElementById('cakeDescription');
+            const imageInput = document.getElementById('imageInput');
+            const dropArea = document.getElementById('dropArea');
+            const fileList = document.getElementById('fileList');
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnLoader = document.getElementById('btnLoader');
+            const successMsg = document.getElementById('successMessage');
+            const errorMsg = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+
+            // State
+            let selectedFile = null;
+
+            // ---------- FILE HANDLING ----------
+            // Click to upload
+            dropArea.addEventListener('click', () => imageInput.click());
+
+            // Drag & Drop
+            dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropArea.classList.add('dragover');
+            });
+            dropArea.addEventListener('dragleave', () => {
+                dropArea.classList.remove('dragover');
+            });
+            dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+
+            // File input change
+            imageInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+
+            function handleFile(file) {
+                // Validate type
+                const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+                if (!validTypes.includes(file.type)) {
+                    alert('Please upload a JPG, PNG, or WEBP image.');
+                    imageInput.value = '';
+                    return;
+                }
+
+                // Validate size (50 MB max)
+                if (file.size > 50 * 1024 * 1024) {
+                    alert('File is too large. Maximum size is 50 MB.');
+                    imageInput.value = '';
+                    return;
+                }
+
+                selectedFile = file;
+                displayFileName(file.name);
+            }
+
+            function displayFileName(name) {
+                const truncated = name.length > 25 ? name.substring(0, 22) + '...' : name;
+                fileList.innerHTML = `
+                    <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-pink-200 mt-1">
+                        <span class="flex items-center gap-2">
+                            <i class="fas fa-file-image text-pink-500"></i>
+                            <span class="file-name">${truncated}</span>
+                        </span>
+                        <button type="button" id="removeFile" class="text-red-400 hover:text-red-600 text-sm font-bold px-2">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                // Remove file handler
+                document.getElementById('removeFile').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectedFile = null;
+                    imageInput.value = '';
+                    fileList.innerHTML = '';
+                    // Reset drop area text
+                    const p = dropArea.querySelector('p');
+                    if (p) p.textContent = 'Tap to upload or drag & drop';
+                });
+                // Update drop area text
+                const p = dropArea.querySelector('p');
+                if (p) p.textContent = '✅ File selected';
+            }
+
+            // ---------- FORM SUBMISSION ----------
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                // Hide old messages
+                successMsg.classList.add('hidden');
+                errorMsg.classList.add('hidden');
+
+                // Validate required fields
+                if (!nameInput.value.trim() || !phoneInput.value.trim() || !flavorSelect.value || !sizeSelect.value || !descriptionInput.value.trim()) {
+                    showError('Please fill in all required fields (*).');
+                    return;
+                }
+
+                // Basic phone validation (simple)
+                const phone = phoneInput.value.trim();
+                if (phone.length < 8) {
+                    showError('Please enter a valid phone number.');
+                    return;
+                }
+
+                // Disable button, show loader
+                submitBtn.disabled = true;
+                btnText.textContent = 'Sending...';
+                btnLoader.classList.remove('hidden');
+
+                // Build FormData
+                const formData = new FormData();
+                formData.append('name', nameInput.value.trim());
+                formData.append('phone', phone);
+                formData.append('eventDate', eventDateInput.value || 'Not specified');
+                formData.append('flavor', flavorSelect.value);
+                formData.append('size', sizeSelect.value);
+                formData.append('description', descriptionInput.value.trim());
+
+                // Append image if selected
+                if (selectedFile) {
+                    formData.append('image', selectedFile);
+                }
+
+                try {
+                    // === IMPORTANT: Replace this URL with your Cloudflare Worker endpoint ===
+                    const response = await fetch('https://your-worker.workers.dev/submit', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        // Success!
+                        successMsg.classList.remove('hidden');
+                        form.reset();
+                        selectedFile = null;
+                        imageInput.value = '';
+                        fileList.innerHTML = '';
+                        // Reset drop area text
+                        const p = dropArea.querySelector('p');
+                        if (p) p.textContent = 'Tap to upload or drag & drop';
+                        // Scroll to top to see success
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } else {
+                        throw new Error(result.message || 'Server error');
+                    }
+                } catch (err) {
+                    showError(err.message || 'Network error. Please check your connection and try again.');
+                } finally {
+                    // Re-enable button
+                    submitBtn.disabled = false;
+                    btnText.textContent = 'Send My Cake Request';
+                    btnLoader.classList.add('hidden');
+                }
+            });
+
+            // ---------- HELPERS ----------
+            function showError(msg) {
+                errorText.textContent = msg;
+                errorMsg.classList.remove('hidden');
+                // Auto hide after 6 seconds
+                setTimeout(() => {
+                    errorMsg.classList.add('hidden');
+                }, 6000);
+            }
+
+            // Set default date to tomorrow (optional)
+            (function setDefaultDate() {
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const year = tomorrow.getFullYear();
+                const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+                const day = String(tomorrow.getDate()).padStart(2, '0');
+                eventDateInput.value = `${year}-${month}-${day}`;
+            })();
+
+        })();
+    </script>
+
+</body>
+</html>
